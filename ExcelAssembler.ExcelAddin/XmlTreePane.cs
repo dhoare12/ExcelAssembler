@@ -81,6 +81,42 @@ namespace ExcelAssembler.ExcelAddin
             var activeCell = Globals.ThisAddIn.Application.ActiveCell;
             activeCell.Value2 = $"<Content Select=\"{xpath}\" />";
         }
+
+        private void menuItemInsertContent_Click(object sender, EventArgs e)
+        {
+            var xpath = contextMenu.Tag.ToString();
+
+            // .NET xpath begins with /Root, Eric White Expects ./
+            xpath = "./" + xpath.Substring(6);
+
+            var activeCell = Globals.ThisAddIn.Application.ActiveCell;
+            activeCell.Value2 = $"<Content Select=\"{xpath}\" />";
+        }
+
+        private void menuItemInsertRepeat_Click(object sender, EventArgs e)
+        {
+            var xpath = contextMenu.Tag.ToString();
+
+            // .NET xpath begins with /Root, Eric White Expects ./
+            xpath = "./" + xpath.Substring(6);
+
+            if (xpath.Contains("["))
+            {
+                // Remove [0] indexer off the end
+                xpath = xpath.Substring(0, xpath.LastIndexOf("[", StringComparison.Ordinal));
+            }
+            var activeCell = Globals.ThisAddIn.Application.ActiveCell;
+            activeCell.Value2 = $"<Repeat Select=\"{xpath}\" />";
+        }
+
+        private void treeTokens_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                contextMenu.Tag = e.Node.Tag.ToString();
+                contextMenu.Show(treeTokens, e.Location);
+            }
+        }
     }
 
     public static class StringExtensions

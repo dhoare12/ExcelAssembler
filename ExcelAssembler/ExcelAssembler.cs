@@ -8,17 +8,10 @@ namespace ExcelAssembler;
 
 public static partial class ExcelAssembler
 {
-    [GeneratedRegex(@"<Content\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase)]
-    private static partial Regex ContentRegex();
-
-    [GeneratedRegex(@"<Repeat\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase)]
-    private static partial Regex RepeatRegex();
-
-    [GeneratedRegex(@"<EndRepeat\s*/>", RegexOptions.IgnoreCase)]
-    private static partial Regex EndRepeatRegex();
-
-    [GeneratedRegex(@"[^\d\.\-]", RegexOptions.IgnoreCase)]
-    private static partial Regex NumericRegex();
+    private static readonly Regex ContentRegex = new Regex(@"<Content\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase);
+    private static readonly Regex RepeatRegex = new Regex(@"<Repeat\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase);
+    private static readonly Regex EndRepeatRegex = new Regex(@"<EndRepeat\s*/>", RegexOptions.IgnoreCase);
+    private static readonly Regex NumericRegex = new Regex(@"[^\d\.\-]", RegexOptions.IgnoreCase);
 
     public static Stream ProcessTemplate(Stream templateStream, string xmlData, bool suppressMissingXml = false)
     {
@@ -46,11 +39,11 @@ public static partial class ExcelAssembler
                 var cell = worksheet.Cells[row, col];
                 var cellText = cell.Text;
 
-                if (cellText.StartsWith("<Content") && !ContentRegex().IsMatch(cellText))
+                if (cellText.StartsWith("<Content") && !ContentRegex.IsMatch(cellText))
                 {
                     throw new($"Invalid <Content> tag at row {row}, column {col}. Expected format: <Content Select=\"...\" />");
                 }
-                if (cellText.StartsWith("<Repeat") && !RepeatRegex().IsMatch(cellText))
+                if (cellText.StartsWith("<Repeat") && !RepeatRegex.IsMatch(cellText))
                 {
                     throw new($"Invalid <Repeat> tag at row {row}, column {col}. Expected format: <Repeat Select=\"...\" />");
                 }
@@ -85,7 +78,7 @@ public static partial class ExcelAssembler
                     for (var scanCol = dim.Start.Column; scanCol <= dim.End.Column; scanCol++)
                     {
                         var scanCell = worksheet.Cells[scanRow, scanCol];
-                        if (EndRepeatRegex().IsMatch(scanCell.Text))
+                        if (EndRepeatRegex.IsMatch(scanCell.Text))
                         {
                             endRepeatRow = scanRow;
 
@@ -130,7 +123,7 @@ public static partial class ExcelAssembler
             {
                 var cell = worksheet.Cells[row, col];
 
-                if (ContentRegex().TryMatchGroups(cell.Text, out var contentMatchGroups))
+                if (ContentRegex.TryMatchGroups(cell.Text, out var contentMatchGroups))
                 {
                     rowContainsContentTags = true;
 
@@ -162,7 +155,7 @@ public static partial class ExcelAssembler
         {
             var cell = worksheet.Cells[row, col];
 
-            if (RepeatRegex().TryMatchGroups(cell.Text, out var repeatMatchGroups))
+            if (RepeatRegex.TryMatchGroups(cell.Text, out var repeatMatchGroups))
             {
                 xPath = repeatMatchGroups[1].Value;
                 return true;
@@ -207,17 +200,17 @@ public static partial class ExcelAssembler
                 var templateCell = worksheet.Cells[templateRow, col];
                 var cellText = templateCell.Text;
 
-                if (RepeatRegex().IsMatch(cellText))
+                if (RepeatRegex.IsMatch(cellText))
                 {
                     throw new($"Nested <Repeat> detected at row {formatRow}. Nested repeats are not supported.");
                 }
 
-                if (EndRepeatRegex().IsMatch(cellText))
+                if (EndRepeatRegex.IsMatch(cellText))
                 {
                     throw new($"Unexpected <EndRepeat /> inside repeat block at row {formatRow}.");
                 }
 
-                if (ContentRegex().TryMatchGroups(cellText, out var matchGroups))
+                if (ContentRegex.TryMatchGroups(cellText, out var matchGroups))
                 {
                     var relativeXPath = matchGroups[1].Value;
                     var fixedPath = FixRelativeXPath(relativeXPath);
@@ -252,7 +245,7 @@ public static partial class ExcelAssembler
 
         if (format.Contains('0') || format.Contains('#')) // likely numeric
         {
-            var numericString = NumericRegex().Replace(rawValue, ""); // keep digits, dot, minus
+            var numericString = NumericRegex.Replace(rawValue, ""); // keep digits, dot, minus
             if (decimal.TryParse(numericString, out var number))
             {
                 targetCell.Value = number;
@@ -275,7 +268,7 @@ public static partial class ExcelAssembler
             return xpath.Substring(2); // Remove leading ./
         }
 
-        if (xpath.StartsWith('/'))
+        if (xpath.StartsWith("/"))
         {
             return xpath.Substring(1); // Remove leading /
         }

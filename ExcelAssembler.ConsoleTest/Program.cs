@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace ExcelAssembler
+namespace ExcelAssembler.ConsoleTest
 {
     internal class Program
     {
@@ -24,7 +24,6 @@ namespace ExcelAssembler
             };
 
             Process.Start(psi);
-
         }
     }
 }

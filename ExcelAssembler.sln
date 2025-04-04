@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelAssembler.Tests", "Exc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelAssembler.ExcelAddin", "ExcelAssembler.ExcelAddin\ExcelAssembler.ExcelAddin.csproj", "{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelAssembler.ConsoleTest", "ExcelAssembler.ConsoleTest\ExcelAssembler.ConsoleTest.csproj", "{FF4FC0DF-31EF-46E0-BF61-984D924BFBD4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF4FC0DF-31EF-46E0-BF61-984D924BFBD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF4FC0DF-31EF-46E0-BF61-984D924BFBD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF4FC0DF-31EF-46E0-BF61-984D924BFBD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF4FC0DF-31EF-46E0-BF61-984D924BFBD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

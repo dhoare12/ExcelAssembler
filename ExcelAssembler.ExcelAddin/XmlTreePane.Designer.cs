@@ -28,8 +28,13 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.treeTokens = new System.Windows.Forms.TreeView();
             this.btnLoadXmlFile = new System.Windows.Forms.Button();
+            this.contextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.menuItemInsertContent = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuItemInsertRepeat = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // treeTokens
@@ -41,6 +46,7 @@
             this.treeTokens.Name = "treeTokens";
             this.treeTokens.Size = new System.Drawing.Size(896, 1167);
             this.treeTokens.TabIndex = 0;
+            this.treeTokens.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeTokens_NodeMouseClick);
             this.treeTokens.NodeMouseDoubleClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeTokens_NodeMouseDoubleClick);
             // 
             // btnLoadXmlFile
@@ -55,6 +61,29 @@
             this.btnLoadXmlFile.UseVisualStyleBackColor = true;
             this.btnLoadXmlFile.Click += new System.EventHandler(this.btnLoadXmlFile_Click);
             // 
+            // contextMenu
+            // 
+            this.contextMenu.ImageScalingSize = new System.Drawing.Size(32, 32);
+            this.contextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menuItemInsertContent,
+            this.menuItemInsertRepeat});
+            this.contextMenu.Name = "contextMenu";
+            this.contextMenu.Size = new System.Drawing.Size(241, 80);
+            // 
+            // menuItemInsertContent
+            // 
+            this.menuItemInsertContent.Name = "menuItemInsertContent";
+            this.menuItemInsertContent.Size = new System.Drawing.Size(240, 38);
+            this.menuItemInsertContent.Text = "Insert Content";
+            this.menuItemInsertContent.Click += new System.EventHandler(this.menuItemInsertContent_Click);
+            // 
+            // menuItemInsertRepeat
+            // 
+            this.menuItemInsertRepeat.Name = "menuItemInsertRepeat";
+            this.menuItemInsertRepeat.Size = new System.Drawing.Size(240, 38);
+            this.menuItemInsertRepeat.Text = "Insert Repeat";
+            this.menuItemInsertRepeat.Click += new System.EventHandler(this.menuItemInsertRepeat_Click);
+            // 
             // XmlTreePane
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
@@ -63,6 +92,7 @@
             this.Controls.Add(this.treeTokens);
             this.Name = "XmlTreePane";
             this.Size = new System.Drawing.Size(902, 1262);
+            this.contextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -71,5 +101,8 @@
 
         private System.Windows.Forms.TreeView treeTokens;
         private System.Windows.Forms.Button btnLoadXmlFile;
+        private System.Windows.Forms.ContextMenuStrip contextMenu;
+        private System.Windows.Forms.ToolStripMenuItem menuItemInsertContent;
+        private System.Windows.Forms.ToolStripMenuItem menuItemInsertRepeat;
     }
 }
