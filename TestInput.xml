@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Root>
+  <Policy>
+    <ExternalPolicyNumber>RCRD-B748F8-2025</ExternalPolicyNumber>
+    <EffectiveDate>09/04/2025</EffectiveDate>
+    <EndDate>09/04/2026</EndDate>
+    <TotalPremium>£2,157.40</TotalPremium>
+    <Tax>£231.15</Tax>
+    <Premium>£1,926.25</Premium>
+    <TotalFees>£0.00</TotalFees>
+	<Coverages>
+		<Coverage>
+			<Name>Fire</Name>
+			<Premium>123.45</Premium>
+		</Coverage>
+		<Coverage>
+			<Name>Wind</Name>
+			<Premium>234.56</Premium>
+		</Coverage>
+	</Coverages>
+  </Policy>
+ 
+</Root>
