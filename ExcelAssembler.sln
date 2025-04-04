@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
+VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelAssembler", "ExcelAssembler.csproj", "{6D3EDAEC-2E3F-46F8-B8AA-7B0A7E7DA02F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelAssembler", "ExcelAssembler\ExcelAssembler.csproj", "{6D3EDAEC-2E3F-46F8-B8AA-7B0A7E7DA02F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelAssembler.Tests", "ExcelAssembler.Tests\ExcelAssembler.Tests.csproj", "{5C53062A-787C-4FBA-9DDE-3312690E520C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelAssembler.ExcelAddin", "ExcelAssembler.ExcelAddin\ExcelAssembler.ExcelAddin.csproj", "{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{6D3EDAEC-2E3F-46F8-B8AA-7B0A7E7DA02F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D3EDAEC-2E3F-46F8-B8AA-7B0A7E7DA02F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D3EDAEC-2E3F-46F8-B8AA-7B0A7E7DA02F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C53062A-787C-4FBA-9DDE-3312690E520C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C53062A-787C-4FBA-9DDE-3312690E520C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C53062A-787C-4FBA-9DDE-3312690E520C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C53062A-787C-4FBA-9DDE-3312690E520C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F68D2BA-EDFA-4034-A3A5-178EC0E6776F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

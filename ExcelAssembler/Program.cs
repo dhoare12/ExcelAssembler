@@ -11,8 +11,12 @@ namespace ExcelAssembler
 
             var tmpPath = $"C:\\Temp\\ExcelAssembler\\Output{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx";
 
-            var assembler = new ExcelAssembler();
-            assembler.ProcessTemplate(templatePath, xmlPath, tmpPath);
+            var stream = ExcelAssembler.ProcessTemplate(File.OpenRead(templatePath), File.ReadAllText(xmlPath));
+
+            using (var fileStream = File.OpenWrite(tmpPath))
+            {
+                stream.CopyTo(fileStream);
+            }
 
             var psi = new ProcessStartInfo(tmpPath)
             {
