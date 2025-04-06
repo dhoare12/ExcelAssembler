@@ -57,7 +57,12 @@ namespace ExcelAssembler.ExcelAddin
 
             var resultPath = Path.Combine(Path.GetTempPath(), "Generated_" + Path.GetFileName(tempTemplatePath));
 
-            var output = ExcelAssembler.ProcessTemplate(templateStream, data, suppressMissingXml: true);
+            var excelAssembler = new ExcelAssembler(new ExcelAssemblerOptions
+            {
+                MissingXmlDataBehaviour = MissingXmlDataBehaviour.ShowPlaceholder
+            });
+
+            var output = excelAssembler.ProcessTemplate(templateStream, data);
 
             using (var outputFile = new FileStream(resultPath, FileMode.Create, FileAccess.Write))
             {

@@ -11,7 +11,12 @@ namespace ExcelAssembler.ConsoleTest
 
             var tmpPath = $"C:\\Temp\\ExcelAssembler\\Output{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx";
 
-            var stream = ExcelAssembler.ProcessTemplate(File.OpenRead(templatePath), File.ReadAllText(xmlPath));
+            var excelAssembler = new ExcelAssembler(new ExcelAssemblerOptions
+            {
+                MissingXmlDataBehaviour = MissingXmlDataBehaviour.ShowPlaceholder
+            });
+
+            var stream = excelAssembler.ProcessTemplate(File.OpenRead(templatePath), File.ReadAllText(xmlPath));
 
             using (var fileStream = File.OpenWrite(tmpPath))
             {

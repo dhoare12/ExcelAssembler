@@ -2,18 +2,22 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.XPath;
-using OfficeOpenXml.ConditionalFormatting;
+using OfficeOpenXml.Style;
 
 namespace ExcelAssembler;
 
-public static partial class ExcelAssembler
-{
-    private static readonly Regex ContentRegex = new Regex(@"<Content\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase);
-    private static readonly Regex RepeatRegex = new Regex(@"<Repeat\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase);
-    private static readonly Regex EndRepeatRegex = new Regex(@"<EndRepeat\s*/>", RegexOptions.IgnoreCase);
-    private static readonly Regex NumericRegex = new Regex(@"[^\d\.\-]", RegexOptions.IgnoreCase);
+// Core model to represent a repeat block in the sheet
 
-    public static Stream ProcessTemplate(Stream templateStream, string xmlData, bool suppressMissingXml = false)
+public class ExcelAssembler(ExcelAssemblerOptions assemblerOptions)
+{
+    private static readonly Regex ContentRegex = new(@"<Content\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase);
+    private static readonly Regex RepeatRegex = new(@"<Repeat\s+Select\s*=\s*""([^""]+)""\s*/>", RegexOptions.IgnoreCase);
+    private static readonly Regex EndRepeatRegex = new(@"<EndRepeat\s*/>", RegexOptions.IgnoreCase);
+    private static readonly Regex NumericRegex = new(@"[^\d\.\-]", RegexOptions.IgnoreCase);
+
+    internal record RepeatBlock(int StartRow, int TemplateRow, int FormatRow, int EndRow, string XPath);
+
+    public Stream ProcessTemplate(Stream templateStream, string xmlData)
     {
         var xml = XElement.Parse(xmlData);
 
@@ -21,7 +25,7 @@ public static partial class ExcelAssembler
 
         foreach (var worksheet in package.Workbook.Worksheets)
         {
-            ProcessWorksheet(xml, worksheet, suppressMissingXml);
+            ProcessWorksheet(xml, worksheet);
         }
 
         var memoryStream = new MemoryStream();
@@ -51,7 +55,7 @@ public static partial class ExcelAssembler
         }
     }
 
-    private static void ProcessWorksheet(XElement xml, ExcelWorksheet worksheet, bool suppressMissingXml)
+    private void ProcessWorksheet(XElement xml, ExcelWorksheet worksheet)
     {
         var rowsToDelete = new List<int>();
 
@@ -65,79 +69,26 @@ public static partial class ExcelAssembler
 
         for (var row = dim.Start.Row; row <= dim.End.Row; row++)
         {
-            if (TryFindStartRepeatInRow(worksheet, dim, row, out var repeatXPath))
+            if (TryStartRepeat(worksheet, dim, row, out var repeatBlock))
             {
-                var repeatRow = row;
-                var templateRow = repeatRow + 1;
-                var formatRow = templateRow + 1;
+                var blockShift = ProcessRepeat(worksheet, dim, xml, repeatBlock);
 
-                // Now locate the endRepeatRow
-                int? endRepeatRow = null;
-                for (var scanRow = formatRow + 1; scanRow <= dim.End.Row; scanRow++)
-                {
-                    for (var scanCol = dim.Start.Column; scanCol <= dim.End.Column; scanCol++)
-                    {
-                        var scanCell = worksheet.Cells[scanRow, scanCol];
-                        if (EndRepeatRegex.IsMatch(scanCell.Text))
-                        {
-                            endRepeatRow = scanRow;
+                rowsToDelete.Add(repeatBlock.StartRow);
+                rowsToDelete.Add(repeatBlock.TemplateRow);
+                rowsToDelete.Add(repeatBlock.FormatRow);
+                rowsToDelete.Add(repeatBlock.EndRow + blockShift);
 
-                            var blockLength = endRepeatRow.Value - repeatRow - 1;
+                Console.WriteLine($"Repeat block found from row {repeatBlock.StartRow} to {repeatBlock.EndRow}");
 
-                            if (blockLength != 2)
-                            {
-                                throw new($"Repeat block at row {repeatRow} must contain exactly one template row and one format row. Found {blockLength} rows.");
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if (endRepeatRow != null)
-                    {
-                        break;
-                    }
-                }
-
-                if (endRepeatRow == null)
-                {
-                    throw new($"<EndRepeat /> not found after row {repeatRow}");
-                }
-
-                var blockShift = ProcessRepeat(xml, repeatXPath, endRepeatRow.Value, worksheet, formatRow, dim, templateRow, suppressMissingXml);
-
-                rowsToDelete.Add(repeatRow);
-                rowsToDelete.Add(templateRow);
-                rowsToDelete.Add(formatRow);
-                rowsToDelete.Add(endRepeatRow.Value + blockShift);
-
-                Console.WriteLine($"Repeat block found from row {repeatRow} to {endRepeatRow}");
-
-                row = endRepeatRow.Value;
+                // Skip ahead to the end of the repeat block before continuing
+                row = repeatBlock.EndRow;
                 continue;
             }
 
-            var rowContainsContentTags = false;
-
-            for (var col = dim.Start.Column; col <= dim.End.Column; col++)
+            if (TryProcessContentRow(worksheet, dim, row, xml))
             {
-                var cell = worksheet.Cells[row, col];
-
-                if (ContentRegex.TryMatchGroups(cell.Text, out var contentMatchGroups))
-                {
-                    rowContainsContentTags = true;
-
-                    var xpath = contentMatchGroups[1].Value;
-                    var fixedPath = FixRelativeXPath(xpath);
-
-                    var result = xml.XPathSelectElement(fixedPath);
-                    var targetCell = worksheet.Cells[row + 1, col];
-                    PopulateCell(targetCell, result, fixedPath, suppressMissingXml);
-                }
-            }
-
-            if (rowContainsContentTags)
-            {
+                // If there were content tags in this row, we just filled in the
+                // row below it and now it can be deleted
                 rowsToDelete.Add(row);
             }
         }
@@ -147,6 +98,84 @@ public static partial class ExcelAssembler
         {
             worksheet.DeleteRow(row);
         }
+    }
+
+    private bool TryProcessContentRow(ExcelWorksheet worksheet, ExcelAddressBase dim, int row,
+        XElement xml)
+    {
+        var rowContainsContentTags = false;
+        for (var col = dim.Start.Column; col <= dim.End.Column; col++)
+        {
+            var cell = worksheet.Cells[row, col];
+
+            if (ContentRegex.TryMatchGroups(cell.Text, out var contentMatchGroups))
+            {
+                rowContainsContentTags = true;
+
+                var xpath = contentMatchGroups[1].Value;
+                var fixedPath = FixRelativeXPath(xpath);
+
+                var result = xml.XPathSelectElement(fixedPath);
+                var targetCell = worksheet.Cells[row + 1, col];
+                PopulateCell(targetCell, result, fixedPath);
+            }
+        }
+
+        return rowContainsContentTags;
+    }
+
+    private static bool TryStartRepeat(ExcelWorksheet worksheet, ExcelAddressBase dim, int startRepeatRow,
+        out RepeatBlock repeatBlock)
+    {
+        if (!TryFindStartRepeatInRow(worksheet, dim, startRepeatRow, out var repeatXPath))
+        {
+            repeatBlock = null!;
+            return false;
+        }
+
+        var templateRow = startRepeatRow + 1;
+        var formatRow = templateRow + 1;
+
+        // Now locate the <EndRepeat />
+        int? endRepeatRow = null;
+        for (var scanRow = formatRow + 1; scanRow <= dim.End.Row; scanRow++)
+        {
+            for (var scanCol = dim.Start.Column; scanCol <= dim.End.Column; scanCol++)
+            {
+                var scanCell = worksheet.Cells[scanRow, scanCol];
+                if (EndRepeatRegex.IsMatch(scanCell.Text))
+                {
+                    endRepeatRow = scanRow;
+
+                    var blockLength = endRepeatRow.Value - startRepeatRow - 1;
+
+                    if (blockLength != 2)
+                    {
+                        throw new($"Repeat block at row {startRepeatRow} must contain exactly one template row and one format row. Found {blockLength} rows.");
+                    }
+
+                    break;
+                }
+
+                if (RepeatRegex.IsMatch(scanCell.Text))
+                {
+                    throw new($"Nested <Repeat> detected at row {scanRow}. Nested repeats are not supported.");
+                }
+            }
+
+            if (endRepeatRow != null)
+            {
+                break;
+            }
+        }
+
+        if (endRepeatRow == null)
+        {
+            throw new($"<EndRepeat /> not found after row {startRepeatRow}");
+        }
+
+        repeatBlock = new(startRepeatRow, templateRow, formatRow, endRepeatRow.Value, repeatXPath);
+        return true;
     }
 
     private static bool TryFindStartRepeatInRow(ExcelWorksheet worksheet, ExcelAddressBase dim, int row, out string xPath)
@@ -166,20 +195,28 @@ public static partial class ExcelAssembler
         return false;
     }
 
-    private static int ProcessRepeat(XElement xml, string repeatXPath, int endRepeatRow, ExcelWorksheet worksheet, int formatRow,
-        ExcelAddressBase dim, int templateRow, bool suppressMissingXml)
+    private int ProcessRepeat(ExcelWorksheet worksheet, ExcelAddressBase dim, XElement xml, RepeatBlock repeat)
     {
-        var fixedRepeatXPath = FixRelativeXPath(repeatXPath);
+        var fixedRepeatXPath = FixRelativeXPath(repeat.XPath);
 
-        if (!suppressMissingXml)
+        // Check if the XPath exists in the XML
+        var repeatResult = xml.XPathSelectElement(fixedRepeatXPath);
+        if (repeatResult == null)
         {
-            // Check if the XPath exists in the XML
-            var result = xml.XPathSelectElement(fixedRepeatXPath);
-            if (result == null)
+            switch (assemblerOptions.MissingXmlDataBehaviour)
             {
-                throw new($"Unresolved XPath: {fixedRepeatXPath}");
+                case MissingXmlDataBehaviour.ThrowException:
+                    throw new($"Unresolved XPath: {fixedRepeatXPath}");
+                case MissingXmlDataBehaviour.ShowPlaceholder:
+                    // Stick a helpful error message in the cell
+                    var cell = worksheet.Cells[repeat.StartRow, dim.Start.Column];
+                    cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+                    cell.Value = $"[UNRESOLVED: {fixedRepeatXPath}]";
+                    return 0;
             }
         }
+
         var itemNodes = xml.XPathSelectElements(fixedRepeatXPath).ToList();
 
         var blockShift = 0;
@@ -187,28 +224,18 @@ public static partial class ExcelAssembler
         foreach (var itemNode in itemNodes)
         {
             // Clone the formatting row
-            worksheet.InsertRow(endRepeatRow + blockShift, 1);
-            var targetRow = endRepeatRow + blockShift;
+            worksheet.InsertRow(repeat.EndRow + blockShift, 1);
+            var targetRow = repeat.EndRow + blockShift;
 
             // Copy format from formatRow to targetRow
-            worksheet.Cells[formatRow, dim.Start.Column, formatRow, dim.End.Column]
+            worksheet.Cells[repeat.FormatRow, dim.Start.Column, repeat.FormatRow, dim.End.Column]
                 .Copy(worksheet.Cells[targetRow, dim.Start.Column]);
 
             // Fill in values based on templateRow
             for (var col = dim.Start.Column; col <= dim.End.Column; col++)
             {
-                var templateCell = worksheet.Cells[templateRow, col];
+                var templateCell = worksheet.Cells[repeat.TemplateRow, col];
                 var cellText = templateCell.Text;
-
-                if (RepeatRegex.IsMatch(cellText))
-                {
-                    throw new($"Nested <Repeat> detected at row {formatRow}. Nested repeats are not supported.");
-                }
-
-                if (EndRepeatRegex.IsMatch(cellText))
-                {
-                    throw new($"Unexpected <EndRepeat /> inside repeat block at row {formatRow}.");
-                }
 
                 if (ContentRegex.TryMatchGroups(cellText, out var matchGroups))
                 {
@@ -217,7 +244,7 @@ public static partial class ExcelAssembler
 
                     var result = itemNode.XPathSelectElement(fixedPath);
                     var targetCell = worksheet.Cells[targetRow, col];
-                    PopulateCell(targetCell, result, relativeXPath, suppressMissingXml);
+                    PopulateCell(targetCell, result, relativeXPath);
                 }
             }
 
@@ -227,16 +254,21 @@ public static partial class ExcelAssembler
         return blockShift;
     }
 
-    private static void PopulateCell(ExcelRange targetCell, XElement? result, string xPath, bool suppressMissingXml)
+    private void PopulateCell(ExcelRange targetCell, XElement? result, string xPath)
     {
         if (result == null)
         {
-            if (!suppressMissingXml)
+            switch (assemblerOptions.MissingXmlDataBehaviour)
             {
-                throw new Exception($"Unresolved XPath: {xPath}");
+                case MissingXmlDataBehaviour.ShowPlaceholder:
+                    targetCell.Value = $"[UNRESOLVED: {xPath}]";
+                    targetCell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    targetCell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+                    return;
+                case MissingXmlDataBehaviour.ThrowException:
+                default:
+                    throw new($"Unresolved XPath: {xPath}");
             }
-            targetCell.Value = $"[UNRESOLVED: {xPath}]";
-            return;
         }
 
         var format = targetCell.Style.Numberformat.Format?.ToLowerInvariant() ?? "";
